@@ -1,0 +1,7 @@
+-- Drops all tables in database (for debugging purposes)
+DROP TABLE IF EXISTS "USER" CASCADE;
+DROP TABLE IF EXISTS watchlist CASCADE;
+DROP TABLE IF EXISTS "ADMIN" CASCADE;
+DROP TABLE IF EXISTS stock CASCADE;
+DROP TABLE IF EXISTS historical_stock CASCADE;
+
