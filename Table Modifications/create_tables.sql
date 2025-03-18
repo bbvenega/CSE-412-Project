@@ -5,7 +5,7 @@
 --  U_Password: A string of 25 characters or less
 CREATE TABLE
     "user" (
-        U_USER_ID INTEGER NOT NULL,
+        U_USER_ID INTEGER NOT NULL UNIQUE,
         U_USERNAME CHAR(25) NOT NULL,
         U_EMAIL CHAR(25) NOT NULL,
         U_PASSWORD CHAR(25) NOT NULL
@@ -16,16 +16,25 @@ CREATE TABLE
 --  W_USER_ID: Integer ~ Foreign key reference to user table.
 CREATE TABLE
     WATCHLIST (
-        W_WATCHLIST_ID INTEGER NOT NULL,
+        W_WATCHLIST_ID INTEGER NOT NULL UNIQUE,
         -- ADDED THIS! 
-        W_USER_ID INTEGER NOT NULL
+        W_USER_ID INTEGER NOT NULL UNIQUE
         --
+    );
+
+-- Creates the Watchlist_Stocks table which acts as a linker between watchlists and stocks with:
+-- WS_WATCHLIST_ID: Integer ~ Foreign key that references it's watchlist
+-- WS_STOCK_ID: Integer ~ Foreign key that references the stock
+CREATE TABLE
+    WATCHLIST_STOCKS (
+        WS_WATCHLIST_ID INTEGER NOT NULL UNIQUE,
+        WS_STOCK_ID INTEGER NOT NULL UNIQUE
     );
 
 -- Creates the Watchlist table with:
 --  A_Admin_ID: Integer
 CREATE TABLE
-    "admin" (A_ADMIN_ID INTEGER NOT NULL);
+    "admin" (A_ADMIN_ID INTEGER NOT NULL UNIQUE);
 
 -- Creates the Stock table with:
 --  S_Stock_ID: Integer
@@ -35,7 +44,7 @@ CREATE TABLE
 --      A decimal value with 2 digits after decimal point 
 CREATE TABLE
     STOCK (
-        S_STOCK_ID INTEGER NOT NULL,
+        S_STOCK_ID INTEGER NOT NULL UNIQUE,
         -- ADDED THIS! 
         S_WATCHLIST_ID INTEGER NOT NULL,
         --
@@ -55,7 +64,7 @@ CREATE TABLE
 --      A decimal value with 2 digits after decimal point 
 CREATE TABLE
     HISTORICAL_STOCK (
-        HS_RECORD_ID INTEGER NOT NULL,
+        HS_RECORD_ID INTEGER NOT NULL UNIQUE,
         HS_DATA CHAR(25) NOT NULL,
         HS_OPEN_PRICE DECIMAL(15, 2) NOT NULL,
         HS_CLOSING_PRICE DECIMAL(15, 2) NOT NULL,
