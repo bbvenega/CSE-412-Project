@@ -1,3 +1,12 @@
+-- Drops all tables in database if they already exist
+DROP TABLE IF EXISTS "user" CASCADE;
+DROP TABLE IF EXISTS watchlist CASCADE;
+DROP TABLE IF EXISTS watchlist_stocks CASCADE;
+DROP TABLE IF EXISTS "admin" CASCADE;
+DROP TABLE IF EXISTS stock CASCADE;
+DROP TABLE IF EXISTS historical_stock CASCADE;
+
+
 -- Creates the User table with:
 --  U_User_ID: Integer
 --  U_Username: A string of 25 characters or less
