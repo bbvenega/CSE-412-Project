@@ -80,3 +80,15 @@ CREATE TABLE
         HS_HIGH DECIMAL(15, 2) NOT NULL,
         HS_LOW DECIMAL(15, 2) NOT NULL
     );
+
+-- CREATE TABLE FOR stock_prices.csv
+CREATE TABLE stock_prices (
+    ticker VARCHAR(10) NOT NULL,
+    date DATE NOT NULL,
+    open NUMERIC,
+    high NUMERIC,
+    low NUMERIC,
+    close NUMERIC,
+    volume BIGINT
+);
+\COPY stock_prices FROM 'stock_prices.csv' WITH CSV HEADER;
