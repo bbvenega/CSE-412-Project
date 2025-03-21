@@ -1,8 +1,8 @@
 -- Drops all tables in database if they already exist
-DROP TABLE IF EXISTS "user" CASCADE;
+DROP TABLE IF EXISTS "Users" CASCADE;
 DROP TABLE IF EXISTS watchlist CASCADE;
 DROP TABLE IF EXISTS watchlist_stocks CASCADE;
-DROP TABLE IF EXISTS "admin" CASCADE;
+DROP TABLE IF EXISTS "Admins" CASCADE;
 DROP TABLE IF EXISTS stock CASCADE;
 DROP TABLE IF EXISTS historical_stock CASCADE;
 
@@ -13,7 +13,7 @@ DROP TABLE IF EXISTS historical_stock CASCADE;
 --  U_Email: A string of 25 characters or less
 --  U_Password: A string of 25 characters or less
 CREATE TABLE
-    "user" (
+    "Users" (
         U_USER_ID INTEGER NOT NULL UNIQUE,
         U_USERNAME CHAR(25) NOT NULL,
         U_EMAIL CHAR(25) NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE
 -- Creates the Watchlist table with:
 --  A_Admin_ID: Integer
 CREATE TABLE
-    "admin" (A_ADMIN_ID INTEGER NOT NULL UNIQUE);
+    "Admins" (A_ADMIN_ID INTEGER NOT NULL UNIQUE);
 
 -- Creates the Stock table with:
 --  S_Stock_ID: Integer
