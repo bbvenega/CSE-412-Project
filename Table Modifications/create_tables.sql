@@ -20,25 +20,26 @@ CREATE TABLE
         U_PASSWORD CHAR(25) NOT NULL
     );
 
--- Creates the Watchlist table with:
---  W_Watchlist_ID: Integer ~ Primary key for watchlist
---  W_USER_ID: Integer ~ Foreign key reference to user table.
-CREATE TABLE
-    WATCHLIST (
-        W_WATCHLIST_ID INTEGER NOT NULL UNIQUE,
-        -- ADDED THIS! 
-        W_USER_ID INTEGER NOT NULL UNIQUE
-        --
-    );
+-- Creates the Watchlist table with:    Each user can have one or more watchlists, and each watchlist will have a unique ID
+-- W_WATCHLIST_ID: Unique ID for each watchlist.
+-- W_USER_ID: Links the watchlist to a specific user.
+-- W_NAME: Users can input name of watchlist
+-- ON DELETE CASCADE: Deletes the user's watchlists if the user is deleted.
+CREATE TABLE WATCHLIST (
+    W_WATCHLIST_ID SERIAL PRIMARY KEY,
+    W_USER_ID INTEGER NOT NULL,
+    W_NAME CHAR(25) NOT NULL,
+    FOREIGN KEY (W_USER_ID) REFERENCES "Users"(U_USER_ID) ON DELETE CASCADE
+);
 
 -- Creates the Watchlist_Stocks table which acts as a linker between watchlists and stocks with:
--- WS_WATCHLIST_ID: Integer ~ Foreign key that references it's watchlist
--- WS_STOCK_ID: Integer ~ Foreign key that references the stock
-CREATE TABLE
-    WATCHLIST_STOCKS (
-        WS_WATCHLIST_ID INTEGER NOT NULL UNIQUE,
-        WS_STOCK_ID INTEGER NOT NULL UNIQUE
-    );
+CREATE TABLE WATCHLIST_STOCKS (
+    WS_WATCHLIST_ID INTEGER NOT NULL,
+    WS_STOCK_ID VARCHAR(10) NOT NULL,
+    PRIMARY KEY (WS_WATCHLIST_ID, WS_STOCK_ID),
+    FOREIGN KEY (WS_WATCHLIST_ID) REFERENCES WATCHLIST(W_WATCHLIST_ID) ON DELETE CASCADE,
+    FOREIGN KEY (WS_STOCK_ID) REFERENCES STOCK(S_TICKER) ON DELETE CASCADE
+);
 
 -- Creates the Watchlist table with:
 --  A_Admin_ID: Integer
@@ -46,49 +47,25 @@ CREATE TABLE
     "Admins" (A_ADMIN_ID INTEGER NOT NULL UNIQUE);
 
 -- Creates the Stock table with:
---  S_Stock_ID: Integer
---  S_Watchlist_ID: Integer ~ Foreign key reference to WATCHLIST table.
---  S_Company_Name: A string of 25 characters or less
---  S_Curr_Price, S_DAILY_HIGH, S_DAILY_LOW, S_WEEK_HIGH, S_WEEK_LOW:
---      A decimal value with 2 digits after decimal point 
-CREATE TABLE
-    STOCK (
-        S_STOCK_ID INTEGER NOT NULL UNIQUE,
-        -- ADDED THIS! 
-        S_WATCHLIST_ID INTEGER NOT NULL,
-        --
-        S_COMPANY_NAME CHAR(25) NOT NULL,
-        S_CURR_PRICE DECIMAL(15, 2) NOT NULL,
-        S_CLOSING_PRICE DECIMAL(15, 2) NOT NULL,
-        S_DAILY_HIGH DECIMAL(15, 2) NOT NULL,
-        S_DAILY_LOW DECIMAL(15, 2) NOT NULL,
-        S_WEEK_HIGH DECIMAL(15, 2) NOT NULL,
-        S_WEEK_LOW DECIMAL(15, 2) NOT NULL
-    );
+CREATE TABLE STOCK (
+    S_TICKER VARCHAR(10) PRIMARY KEY,
+    S_COMPANY_NAME CHAR(25) NOT NULL
+);
 
--- Creates the Historical Stock table with:
---  HS_Record_ID: Integer ~ Foreign key reference to STOCK
---  HS_Data: A string of 25 characters or less
---  HS_OPEN_PRICE, HS_CLOSING_PRICE, HS_HIGH, HS_LOW:
---      A decimal value with 2 digits after decimal point 
 CREATE TABLE
     HISTORICAL_STOCK (
-        HS_RECORD_ID INTEGER NOT NULL UNIQUE,
-        HS_DATA CHAR(25) NOT NULL,
-        HS_OPEN_PRICE DECIMAL(15, 2) NOT NULL,
-        HS_CLOSING_PRICE DECIMAL(15, 2) NOT NULL,
-        HS_HIGH DECIMAL(15, 2) NOT NULL,
-        HS_LOW DECIMAL(15, 2) NOT NULL
+	    HS_ID SERIAL PRIMARY KEY,
+	    TICKER VARCHAR(10) NOT NULL,
+	    HS_DATE DATE NOT NULL,
+	    HS_OPEN_PRICE NUMERIC NOT NULL,
+	    HS_HIGH NUMERIC NOT NULL,
+	    HS_LOW NUMERIC NOT NULL,
+		HS_CLOSING_PRICE NUMERIC NOT NULL,
+		HS_VOLUME BIGINT
     );
 
--- CREATE TABLE FOR stock_prices.csv
-CREATE TABLE stock_prices (
-    ticker VARCHAR(10) NOT NULL,
-    date DATE NOT NULL,
-    open NUMERIC,
-    high NUMERIC,
-    low NUMERIC,
-    close NUMERIC,
-    volume BIGINT
-);
-\COPY stock_prices FROM 'stock_prices.csv' WITH CSV HEADER;
+
+COPY HISTORICAL_STOCK (TICKER, HS_DATE, HS_OPEN_PRICE, HS_HIGH, HS_LOW, HS_CLOSING_PRICE, HS_VOLUME)
+FROM '/YourPath/stock_prices.csv'
+DELIMITER ','
+CSV HEADER;
