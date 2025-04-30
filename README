@@ -1,1 +1,22 @@
 412 Spring 2025 Project
+
+How to run the API server and the Project.
+
+1. cd Server
+2. run: nano .env
+    Make sure to put your database login information
+
+    PGUSER=your_username
+    PGPASSWORD=your_password
+    PGHOST=/tmp
+    PGPORT=8888
+    PGDATABASE=your_database_name
+
+3. run: npm install
+    in server directory
+4. run: node index.js
+    this should run the server
+5. now: cd 412-react-stockwatchlist
+6. run: npm install
+7. run: npm start
+

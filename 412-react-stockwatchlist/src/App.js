@@ -1,49 +1,54 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  // PLACEHOLDER FOR THE TICKERS REPLACE WITH QUERY
-  const [availableStocks] = useState([
-    { S_TICKER: 'STOCK1' },
-    { S_TICKER: 'STOCK2' },
-    { S_TICKER: 'STOCK3' },
-  ]);
-  // PLACEHOLDER ADD IN OUR QUERY TO PULL THE HISTORICAL DATA
-  const [historicalData] = useState([
-    { HS_ID: 1, TICKER: 'STOCK1', HS_DATE: '2025-04-26', HS_OPEN_PRICE: 99, HS_HIGH: 99, HS_LOW: 99, HS_CLOSING_PRICE: 99, HS_VOLUME: 99 },
-    { HS_ID: 2, TICKER: 'STOCK2', HS_DATE: '2025-04-26', HS_OPEN_PRICE: 99, HS_HIGH: 99, HS_LOW: 99, HS_CLOSING_PRICE: 99, HS_VOLUME: 99  },
-    { HS_ID: 3, TICKER: 'STOCK3', HS_DATE: '2025-04-26', HS_OPEN_PRICE: 99, HS_HIGH: 99, HS_LOW: 99, HS_CLOSING_PRICE: 99, HS_VOLUME: 99  },
-    { HS_ID: 4, TICKER: 'STOCK1', HS_DATE: '2025-04-25', HS_OPEN_PRICE: 99, HS_HIGH: 99, HS_LOW: 99, HS_CLOSING_PRICE: 99, HS_VOLUME: 99  },
-    { HS_ID: 5, TICKER: 'STOCK2', HS_DATE: '2025-04-25', HS_OPEN_PRICE: 99, HS_HIGH: 99, HS_LOW: 99, HS_CLOSING_PRICE: 99, HS_VOLUME: 99  },
-    { HS_ID: 6, TICKER: 'STOCK3', HS_DATE: '2025-04-25', HS_OPEN_PRICE: 99, HS_HIGH: 99, HS_LOW: 99, HS_CLOSING_PRICE: 99, HS_VOLUME: 99  },
-  ]);
+
+  const [availableStocks, setAvailableStocks] = useState([]);
+  const [historicalData, setHistoricalData] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
   const [selectedStock, setSelectedStock] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
 
+  // Fetch all available stocks
+  useEffect(() => {
+    fetch('http://localhost:5050/api/stocks')
+      .then(res => res.json())
+      .then(data => setAvailableStocks(data))
+      .catch(err => console.error('Error fetching stocks:', err));
+  }, []);
+
+  // Fetch historical data for selected stock
+  useEffect(() => {
+    if (selectedStock) {
+      fetch(`http://localhost:5050/api/historical/${selectedStock}`)
+        .then(res => res.json())
+        .then(data => {
+          console.log('Keys of first record:', Object.keys(data[0])); //first record for the stock
+          setHistoricalData(data)})
+        .catch(err => console.error('Error fetching historical data:', err));
+    }
+  }, [selectedStock]);
+
   const handleLogin = (e) => {
     e.preventDefault();
-    // REPLACE WITH QUERY TO GET USERNAME AND PASSWORD RIGHT NOW ITS "username" "password"
-    if (username && password) setIsLoggedIn(true);
+    if (username && password) setIsLoggedIn(true); // Add actual login logic here
   };
 
   const handleAddToWatchlist = (e) => {
     const ticker = e.target.value;
-    if (ticker && !watchlist.some((stock) => stock.S_TICKER === ticker)) {
-      const stock = availableStocks.find((s) => s.S_TICKER === ticker);
+    if (ticker && !watchlist.some((stock) => stock.s_ticker === ticker)) {
+      const stock = availableStocks.find((s) => s.s_ticker === ticker);
       setWatchlist([...watchlist, stock]);
-      // ADD IN QUERY TO ADD STOCK INTO USER WATCHLIST
       setSelectedStock(ticker);
     }
   };
 
   const handleRemoveFromWatchlist = (ticker) => {
-    setWatchlist(watchlist.filter((stock) => stock.S_TICKER !== ticker));
+    setWatchlist(watchlist.filter((stock) => stock.s_ticker !== ticker));
     if (selectedStock === ticker) setSelectedStock('');
-    // ADD IN QUERY TO DELETE FROM USER WATCHLIST
   };
 
   const handleStockSelect = (ticker) => {
@@ -56,25 +61,22 @@ function App() {
   };
 
   const getAvailableDates = (ticker) => {
-    //REPLACE WITH QUERY TO GET ALL DATES FROM THE TICKER FOR DROPDOWN
     return [...new Set(historicalData
-      .filter((data) => data.TICKER === ticker)
-      .map((data) => data.HS_DATE))]
+      .filter((data) => data.ticker === ticker)
+      .map((data) => data.hs_date))]
       .sort((a, b) => new Date(b) - new Date(a));
   };
-
+  
   const getLatestData = (ticker) => {
     const dates = getAvailableDates(ticker);
     const latestDate = dates[0];
-    // REPLACE WITH A QUERY TO GET THE MOST RECENT STOCK DATA
-    return historicalData.find((data) => data.TICKER === ticker && data.HS_DATE === latestDate);
+    return historicalData.find((data) => data.ticker === ticker && data.hs_date === latestDate);
   };
-
+  
   const getHistoricalData = (ticker, date) => {
-    //REPLACE WITH A QUERY TO GET ALL OF THE INFO FOR THE DATE THAT WAS CHOSEN
-    return historicalData.find((data) => data.TICKER === ticker && data.HS_DATE === date);
-  };
-  //LOGIN HTML
+    return historicalData.find((data) => data.ticker === ticker && data.hs_date === date);
+  };  
+
   if (!isLoggedIn) {
     return (
       <div className="app">
@@ -103,7 +105,6 @@ function App() {
     );
   }
 
-  //MAIN PAGE HTML
   return (
     <div className="app">
       <h1>Stock Watchlist</h1>
@@ -114,23 +115,23 @@ function App() {
           <select onChange={handleAddToWatchlist} value="">
             <option value="" disabled>Select a stock</option>
             {availableStocks.map((stock) => (
-              <option key={stock.S_TICKER} value={stock.S_TICKER}>
-                ({stock.S_TICKER})
+              <option key={stock.s_ticker} value={stock.s_ticker}>
+                {stock.s_ticker}
               </option>
             ))}
           </select>
           <ul>
             {watchlist.map((stock) => (
-              <li key={stock.S_TICKER}>
+              <li key={stock.s_ticker}>
                 <button
-                  className={`stock-btn ${selectedStock === stock.S_TICKER ? 'selected' : ''}`}
-                  onClick={() => handleStockSelect(stock.S_TICKER)}
+                  className={`stock-btn ${selectedStock === stock.s_ticker ? 'selected' : ''}`}
+                  onClick={() => handleStockSelect(stock.s_ticker)}
                 >
-                  ({stock.S_TICKER})
+                  {stock.s_ticker}
                 </button>
                 <button
                   className="remove-btn"
-                  onClick={() => handleRemoveFromWatchlist(stock.S_TICKER)}
+                  onClick={() => handleRemoveFromWatchlist(stock.s_ticker)}
                 >
                   Remove
                 </button>
@@ -155,13 +156,13 @@ function App() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td>{latestData.HS_DATE}</td>
-                        <td>${latestData.HS_CLOSING_PRICE}</td>
+                        <td>{latestData.hs_date}</td>
+                        <td>${latestData.hs_closing_price}</td>
                       </tr>
                     </tbody>
                   </table>
                 ) : (
-                  <p>No data</p>
+                  <p>No data available</p>
                 );
               })()}
               <h3>Historical Data</h3>
@@ -188,18 +189,18 @@ function App() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td>{data.TICKER}</td>
-                        <td>{data.HS_DATE}</td>
-                        <td>${data.HS_OPEN_PRICE}</td>
-                        <td>${data.HS_HIGH}</td>
-                        <td>${data.HS_LOW}</td>
-                        <td>${data.HS_CLOSING_PRICE}</td>
-                        <td>{data.HS_VOLUME}</td>
+                        <td>{data.ticker}</td>
+                        <td>{data.hs_date}</td>
+                        <td>${data.hs_open_price}</td>
+                        <td>${data.hs_high}</td>
+                        <td>${data.hs_low}</td>
+                        <td>${data.hs_closing_price}</td>
+                        <td>{data.hs_volume}</td>
                       </tr>
                     </tbody>
                   </table>
                 ) : (
-                  <p>No data</p>
+                  <p>No historical data</p>
                 );
               })()}
             </>
