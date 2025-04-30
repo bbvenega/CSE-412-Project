@@ -1,5 +1,18 @@
 412 Spring 2025 Project
 
+
+Initiating the database using pgAdmin4.
+
+1. In pgAdmin, create a new database.
+2. Using a query tool, copy and past code in create_tables.sql under Table Modifications
+    The copy command when attempting to create the stock and historical_stock tables might not work. So take them out. Manually import them with pgAdmin 4 later.
+3. After tables are created.
+4. Manually import the stock.csv into stock table
+    Make sure that the stock table is manually imported first before stock_prices.csv for the historical_stock
+5. Manually import the stock_prices.csv into the historical_stock table.
+    When importing, under the COLUMNS of the import options, make sure to get rid of hs_id.  
+    
+
 How to run the API server and the Project.
 
 1. cd Server
