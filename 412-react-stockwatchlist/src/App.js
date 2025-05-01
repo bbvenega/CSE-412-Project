@@ -12,7 +12,10 @@ function App() {
   const [selectedStock, setSelectedStock] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
 
-  const [sortOption, setSortOption] = useState("ticker");
+  const [sortOption, setSortOption] = useState("Ticker");
+  const [maxMinOption, setmaxMinOption] = useState("Open");
+  const [minVal, setMinVal] = useState(0);
+  const [maxVal, setMaxVal] = useState(Infinity);
 
   // Fetch all available stocks
   useEffect(() => {
@@ -121,12 +124,42 @@ function App() {
     );
   };
 
-  const handleSortChange = async (option) => {
+  // Reacts to whenver the sort select menu changes
+  const handleSortChange = async (option, maxMinOption) => {
+    const maxToSend = isFinite(maxVal) ? maxVal : 100000000000;
+    const minToSend = isFinite(minVal) ? minVal : 0;
     setSortOption(option);
-
     try {
       const res = await fetch(
-        `http://localhost:5050/api/stocks?sort=${option}`
+        `http://localhost:5050/api/stocks?sort=${option}&filter=${maxMinOption}&max=${maxToSend}&min=${minToSend}`
+      );
+      const data = await res.json();
+      setAvailableStocks(data);
+    } catch (err) {
+      console.log("error fetching sorted stocks: ", err);
+    }
+  };
+
+  // Handles visual change for select filter
+  const handleFilterChange = (filterOption) => {
+    setmaxMinOption(filterOption);
+  };
+
+  // Handles when the filter button is pressed
+  const handleFilterClick = async (
+    option,
+    maxMinOption,
+    min = minVal,
+    max = maxVal
+  ) => {
+    const maxToSend = isFinite(maxVal) ? max : 100000000000;
+    const minToSend = isFinite(minVal) ? min : 0;
+    try {
+      console.log(
+        `http://localhost:5050/api/stocks?sort=${option}&filter=${maxMinOption}&max=${maxToSend}&min=${minToSend}`
+      );
+      const res = await fetch(
+        `http://localhost:5050/api/stocks?sort=${option}&filter=${maxMinOption}&max=${maxToSend}&min=${minToSend}`
       );
       const data = await res.json();
       setAvailableStocks(data);
@@ -180,21 +213,17 @@ function App() {
         Logout
       </button>
       <div className="container">
-
-        /*
-        Recent Data Stock Table
-        */
         <div className="section">
+
+          {/* Table: Recent Stock Data  */}
           <h2>Recent Stock Data</h2>
 
-          /*
-          Sort Selection
-          */
+          {/* Select: User selects how recent stock data should be sorted */}
           <label>
             Sort by:{" "}
             <select
               value={sortOption}
-              onChange={(e) => handleSortChange(e.target.value)}
+              onChange={(e) => handleSortChange(e.target.value, maxMinOption)}
             >
               <option value="Ticker">Ticker</option>
               <option value="Date">Date</option>
@@ -206,9 +235,58 @@ function App() {
             </select>
           </label>
 
-          /*
-          Table 
-          */
+          {/* Select: User selects filter value and min and max range */}
+          <label>
+            Filter Values:{" "}
+            <select
+              value={maxMinOption}
+              onChange={(e) => handleFilterChange(e.target.value)}
+            >
+              <option value="Open">Opening Price</option>
+              <option value="Volume">Volume</option>
+              <option value="Close">Closing Price</option>
+              <option value="High">High</option>
+              <option value="Low">Low</option>
+            </select>
+          </label>
+          <p>Selected filter: {maxMinOption}</p>
+
+          {/* Min input  */}
+          <input
+            type="number"
+            step="0.01"
+            value={minVal}
+            onChange={(e) => setMinVal(parseFloat(e.target.value))}
+            placeholder="Enter min value"
+          />
+
+          {/* Max input  */}
+          <input
+            type="number"
+            step="0.01"
+            value={maxVal}
+            onChange={(e) => setMaxVal(parseFloat(e.target.value))}
+            placeholder="Enter max value"
+          />
+
+          {/* Filter buttons  */}
+          <button
+            onClick={() => {
+              handleFilterClick(sortOption, maxMinOption);
+            }}
+          >
+            Apply Filter
+          </button>
+          <button
+            onClick={() => {
+              setMinVal(0);
+              setMaxVal(Infinity);
+              handleFilterClick(sortOption, "", 0, Infinity);
+            }}
+          >
+            Reset Filter
+          </button>
+
           <table className="table">
             <thead>
               <tr>

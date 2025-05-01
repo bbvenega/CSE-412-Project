@@ -14,69 +14,107 @@ const pool = require("../db");
 //     }
 //   });
 
-// Calls api in sorted order
+// Calls api in sorted order, and filters if a filter is passed in
 router.get("/stocks", async (req, res) => {
+
+  // Read in passsed in values determined by sort / filter select
+  // As well as min / max
   const sort = req.query.sort || "Ticker";
-  console.log("Received sort value from client:", sort);
+  const filter = req.query.filter || "";
+  const min = parseFloat(req.query.min);
+  const max = parseFloat(req.query.max);
 
-  let query = "SELECT * FROM stock ";
+//Debugging Stuff
+  // console.log("Received sort value from client:", sort);
+  // console.log("Received filter value from client:", filter);
+  // console.log("Received min value from client:", min);
+  // console.log("Received max value from client:", max);
 
+  // Default Query: Selects all stocks, uses where 1=1 to make it possible to append filters conditionally
+  let query = "SELECT * FROM stock s WHERE 1=1 ";
+
+  //  Converts simple language to db attributes
+  const columnMap = {
+    Close: "hs_closing_price",
+    Open: "hs_open_price",
+    High: "hs_high",
+    Low: "hs_low",
+    Volume: "hs_volume",
+  };
+
+  const column = columnMap[filter];
+
+  // Checks to see if the user passed in a filter and valid min / max
+  if (column && !isNaN(min) && !isNaN(max)) {
+    query += `
+      AND (
+        SELECT ${column}
+        FROM historical_stock h
+        WHERE h.ticker = s.s_ticker
+        ORDER BY hs_date DESC
+        LIMIT 1
+      ) BETWEEN ${min} AND ${max}
+    `;
+  }
+
+
+  // If-else determines order of results from main query
   if (sort === "Ticker") {
-    query += "ORDER BY stock.s_ticker";
+    query += " ORDER BY s.s_ticker";
   } else if (sort === "Date") {
     query += `
-      ORDER BY (
+       ORDER BY (
         SELECT MAX(hs_date)
         FROM historical_stock
-        WHERE historical_stock.ticker = stock.s_ticker
+        WHERE historical_stock.ticker = s.s_ticker
       ) DESC NULLS LAST
     `;
   } else if (sort === "Close") {
     query += `
-      ORDER BY (
+       ORDER BY (
         SELECT hs_closing_price
         FROM historical_stock
-        WHERE historical_stock.ticker = stock.s_ticker
+        WHERE historical_stock.ticker = s.s_ticker
         ORDER BY hs_date DESC
         LIMIT 1
       ) DESC NULLS LAST
     `;
   } else if (sort === "High") {
     query += `
-       ORDER BY (
+        ORDER BY (
         SELECT hs_high
         FROM historical_stock
-        WHERE historical_stock.ticker = stock.s_ticker
+        WHERE historical_stock.ticker = s.s_ticker
         ORDER BY hs_date DESC
         LIMIT 1
       ) DESC NULLS LAST
     `;
   } else if (sort === "Volume") {
     query += `
-    ORDER BY (
+     ORDER BY (
      SELECT hs_volume
      FROM historical_stock
-     WHERE historical_stock.ticker = stock.s_ticker
+     WHERE historical_stock.ticker = s.s_ticker
      ORDER BY hs_date DESC
      LIMIT 1
    ) DESC NULLS LAST
  `;
   } else if (sort === "Open") {
     query += `
-    ORDER BY (
+     ORDER BY (
      SELECT hs_open_price
      FROM historical_stock
-     WHERE historical_stock.ticker = stock.s_ticker
+     WHERE historical_stock.ticker = s.s_ticker
      ORDER BY hs_date DESC
      LIMIT 1
    ) DESC NULLS LAST
  `;
   } else if (sort === "Low") {
     query += `
-    ORDER BY (
+     ORDER BY (
      SELECT hs_low
      FROM historical_stock
-     WHERE historical_stock.ticker = stock.s_ticker
+     WHERE historical_stock.ticker = s.s_ticker
      ORDER BY hs_date DESC
      LIMIT 1
    ) ASC NULLS LAST
