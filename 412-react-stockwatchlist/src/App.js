@@ -1,36 +1,64 @@
-import { useState, useEffect } from 'react';
-import './App.css';
+import { useState, useEffect } from "react";
+import "./App.css";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   const [availableStocks, setAvailableStocks] = useState([]);
   const [historicalData, setHistoricalData] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
-  const [selectedStock, setSelectedStock] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedStock, setSelectedStock] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+
+  const [sortOption, setSortOption] = useState("ticker");
 
   // Fetch all available stocks
   useEffect(() => {
-    fetch('http://localhost:5050/api/stocks')
-      .then(res => res.json())
-      .then(data => setAvailableStocks(data))
-      .catch(err => console.error('Error fetching stocks:', err));
+    fetch("http://localhost:5050/api/stocks")
+      .then((res) => res.json())
+      .then((data) => setAvailableStocks(data))
+      .catch((err) => console.error("Error fetching stocks:", err));
   }, []);
 
-  // Fetch historical data for selected stock
+  // Fetch historical data for all stocks
   useEffect(() => {
-    if (selectedStock) {
-      fetch(`http://localhost:5050/api/historical/${selectedStock}`)
-        .then(res => res.json())
-        .then(data => {
-          console.log('Keys of first record:', Object.keys(data[0])); //first record for the stock
-          setHistoricalData(data)})
-        .catch(err => console.error('Error fetching historical data:', err));
+    async function fetchAllHistoricalData() {
+      try {
+        const allData = await Promise.all(
+          availableStocks.map(
+            (stock) =>
+              fetch(`http://localhost:5050/api/historical/${stock.s_ticker}`)
+                .then((res) => res.json())
+                .catch(() => []) // Handle individual fetch failures
+          )
+        );
+
+        setHistoricalData(allData.flat());
+      } catch (err) {
+        console.error("Error fetching all historical data:", err);
+      }
     }
-  }, [selectedStock]);
+
+    if (availableStocks.length > 0) {
+      fetchAllHistoricalData();
+    }
+  }, [availableStocks]);
+
+  // COMMENTED OUT BECAUSE NO LONGER NEEDED
+  // Fetch historical data for selected stock
+  // useEffect(() => {
+  //   if (selectedStock) {
+  //     fetch(`http://localhost:5050/api/historical/${selectedStock}`)
+  //       .then((res) => res.json())
+  //       .then((data) => {
+  //         console.log("Keys of first record:", Object.keys(data[0])); //first record for the stock
+  //         setHistoricalData(data);
+  //       })
+  //       .catch((err) => console.error("Error fetching historical data:", err));
+  //   }
+  // }, [selectedStock]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -48,12 +76,12 @@ function App() {
 
   const handleRemoveFromWatchlist = (ticker) => {
     setWatchlist(watchlist.filter((stock) => stock.s_ticker !== ticker));
-    if (selectedStock === ticker) setSelectedStock('');
+    if (selectedStock === ticker) setSelectedStock("");
   };
 
   const handleStockSelect = (ticker) => {
     setSelectedStock(ticker);
-    setSelectedDate('');
+    setSelectedDate("");
   };
 
   const handleDateChange = (e) => {
@@ -61,21 +89,61 @@ function App() {
   };
 
   const getAvailableDates = (ticker) => {
-    return [...new Set(historicalData
-      .filter((data) => data.ticker === ticker)
-      .map((data) => data.hs_date))]
-      .sort((a, b) => new Date(b) - new Date(a));
+    return [
+      ...new Set(
+        historicalData
+          .filter((data) => data.ticker === ticker)
+          .map((data) => data.hs_date)
+      ),
+    ].sort((a, b) => new Date(b) - new Date(a));
   };
-  
+
   const getLatestData = (ticker) => {
     const dates = getAvailableDates(ticker);
     const latestDate = dates[0];
-    return historicalData.find((data) => data.ticker === ticker && data.hs_date === latestDate);
+    console.log(
+      "Ticker:",
+      ticker,
+      "Dates:",
+      dates,
+      "Latest Dates:",
+      latestDate
+    );
+
+    return historicalData.find(
+      (data) => data.ticker === ticker && data.hs_date === latestDate
+    );
   };
-  
+
   const getHistoricalData = (ticker, date) => {
-    return historicalData.find((data) => data.ticker === ticker && data.hs_date === date);
-  };  
+    return historicalData.find(
+      (data) => data.ticker === ticker && data.hs_date === date
+    );
+  };
+
+  const handleSortChange = async (option) => {
+    setSortOption(option);
+
+    try {
+      const res = await fetch(
+        `http://localhost:5050/api/stocks?sort=${option}`
+      );
+      const data = await res.json();
+      setAvailableStocks(data);
+    } catch (err) {
+      console.log("error fetching sorted stocks: ", err);
+    }
+  };
+
+  // Formats date string into YYYY-MM-DD
+  const formatDate = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0"); // 0-based month
+    const day = String(d.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
 
   if (!isLoggedIn) {
     return (
@@ -108,12 +176,87 @@ function App() {
   return (
     <div className="app">
       <h1>Stock Watchlist</h1>
-      <button className="logout-btn" onClick={() => setIsLoggedIn(false)}>Logout</button>
+      <button className="logout-btn" onClick={() => setIsLoggedIn(false)}>
+        Logout
+      </button>
       <div className="container">
+
+        /*
+        Recent Data Stock Table
+        */
+        <div className="section">
+          <h2>Recent Stock Data</h2>
+
+          /*
+          Sort Selection
+          */
+          <label>
+            Sort by:{" "}
+            <select
+              value={sortOption}
+              onChange={(e) => handleSortChange(e.target.value)}
+            >
+              <option value="Ticker">Ticker</option>
+              <option value="Date">Date</option>
+              <option value="Open">Opening Price</option>
+              <option value="Volume">Volume</option>
+              <option value="Close">Closing Price</option>
+              <option value="High">High</option>
+              <option value="Low">Low</option>
+            </select>
+          </label>
+
+          /*
+          Table 
+          */
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Ticker</th>
+                <th>Date</th>
+                <th>Open</th>
+                <th>Close</th>
+                <th>Volume</th>
+                <th>High</th>
+                <th>Low</th>
+              </tr>
+            </thead>
+            <tbody>
+              {availableStocks.map((stock, index) => {
+                const newestData = getLatestData(stock.s_ticker); // Fix: pass ticker string
+
+                return newestData ? (
+                  <tr key={index}>
+                    <td>{stock.s_ticker}</td>
+                    <td>{formatDate(newestData.hs_date)}</td>
+                    <td>${newestData.hs_open_price}</td>
+                    <td>${newestData.hs_closing_price}</td>
+                    <td>{newestData.hs_volume}</td>
+                    <td>${newestData.hs_high}</td>
+                    <td>${newestData.hs_low}</td>
+                  </tr>
+                ) : (
+                  <tr key={index}>
+                    <td>{stock.s_ticker}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
         <div className="section">
           <h2>Add to Watchlist</h2>
           <select onChange={handleAddToWatchlist} value="">
-            <option value="" disabled>Select a stock</option>
+            <option value="" disabled>
+              Select a stock
+            </option>
             {availableStocks.map((stock) => (
               <option key={stock.s_ticker} value={stock.s_ticker}>
                 {stock.s_ticker}
@@ -124,7 +267,9 @@ function App() {
             {watchlist.map((stock) => (
               <li key={stock.s_ticker}>
                 <button
-                  className={`stock-btn ${selectedStock === stock.s_ticker ? 'selected' : ''}`}
+                  className={`stock-btn ${
+                    selectedStock === stock.s_ticker ? "selected" : ""
+                  }`}
                   onClick={() => handleStockSelect(stock.s_ticker)}
                 >
                   {stock.s_ticker}
@@ -167,42 +312,47 @@ function App() {
               })()}
               <h3>Historical Data</h3>
               <select onChange={handleDateChange} value={selectedDate}>
-                <option value="" disabled>Select a date</option>
+                <option value="" disabled>
+                  Select a date
+                </option>
                 {getAvailableDates(selectedStock).map((date) => (
-                  <option key={date} value={date}>{date}</option>
+                  <option key={date} value={date}>
+                    {date}
+                  </option>
                 ))}
               </select>
-              {selectedDate && (() => {
-                const data = getHistoricalData(selectedStock, selectedDate);
-                return data ? (
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Ticker</th>
-                        <th>Date</th>
-                        <th>Open</th>
-                        <th>High</th>
-                        <th>Low</th>
-                        <th>Close</th>
-                        <th>Volume</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>{data.ticker}</td>
-                        <td>{data.hs_date}</td>
-                        <td>${data.hs_open_price}</td>
-                        <td>${data.hs_high}</td>
-                        <td>${data.hs_low}</td>
-                        <td>${data.hs_closing_price}</td>
-                        <td>{data.hs_volume}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                ) : (
-                  <p>No historical data</p>
-                );
-              })()}
+              {selectedDate &&
+                (() => {
+                  const data = getHistoricalData(selectedStock, selectedDate);
+                  return data ? (
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Ticker</th>
+                          <th>Date</th>
+                          <th>Open</th>
+                          <th>High</th>
+                          <th>Low</th>
+                          <th>Close</th>
+                          <th>Volume</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>{data.ticker}</td>
+                          <td>{data.hs_date}</td>
+                          <td>${data.hs_open_price}</td>
+                          <td>${data.hs_high}</td>
+                          <td>${data.hs_low}</td>
+                          <td>${data.hs_closing_price}</td>
+                          <td>{data.hs_volume}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p>No historical data</p>
+                  );
+                })()}
             </>
           ) : (
             <p>Select a stock from your watchlist</p>
