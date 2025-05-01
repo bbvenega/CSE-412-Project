@@ -5,6 +5,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isAdmin, setAdmin] = useState(false)
 
   const [availableStocks, setAvailableStocks] = useState([]);
   const [historicalData, setHistoricalData] = useState([]);
@@ -63,10 +64,29 @@ function App() {
   //   }
   // }, [selectedStock]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    /* try {
+      const res = await fetch(`http://localhost:5050/api/login/${username}/${password}`)
+      if (res.ok) {
+        const data = JSON.parse(res.body)
+        console.log(res.body)
+        const userid = data.u_user_id
+        console.log(userid)
+        const isAdmin = await fetch(`http://localhost:5050/api/isAdmin/${data}`)
+      }
+    } catch(err) {
+      console.log(err)
+    } */
     if (username && password) setIsLoggedIn(true); // Add actual login logic here
   };
+
+  /* const confirmAdmin = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`http://localhost:5050/api/isAdmin/${data}`)
+    }
+  } */
 
   const handleAddToWatchlist = (e) => {
     const ticker = e.target.value;

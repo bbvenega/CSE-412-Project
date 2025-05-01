@@ -163,4 +163,60 @@ router.get("/latest/:ticker", async (req, res) => {
   }
 });
 
+//Gets the user with the specified credentials for login
+router.get("/login/:username/:password", async (req, res) => {
+  const { username, password } = req.params
+  try{
+    console.log(username, password)
+    const user = await pool.query('SELECT * FROM "Users" WHERE u_username = $1', [username])
+    console.log(password)
+    console.log(String(user.rows[0].u_password))
+    console.log(user.rows[0].u_password.trim() == password)
+    if (user.rows.length == 0 || user.rows[0].u_password.trim() !== password) {
+      return res.status(401).send("Invalid")
+    }
+    console.log(user.rows[0].u_password)
+    console.log("User found")
+    res.status(200).json(user.rows[0])
+  }
+  catch(error) {
+    console.error("Unsuccessful registration attempt:", error)
+    res.status(401).send("Invalid Credentials")
+  }
+})
+
+//Creates a new user
+router.get("/register/:username/:password", async (req, res) => {
+  const { username, password } = req.params
+  try {
+    const user = await pool.query('INSERT INTO "Users"(u_username, u_email, u_password) VALUES ($1, $2, $3) RETURNING *', [username, username, password])
+    console.log(user)
+    res.status(201).json(user.rows[0])
+    console.log(res)
+}
+  catch(error) {
+    console.error("Unsuccessful registration attempt:", error)
+    res.status(401).send("Failed Registration")
+  }
+})
+
+//Checks if specified user is an admin
+router.get("/isAdmin/:userid", async (req, res) => {
+  const { userid } = req.params
+  console.log(userid)
+  try {
+    const user = await pool.query('SELECT * FROM "Admins" WHERE a_admin_id = $1', [userid])
+    console.log(user.rows.length)
+    if (user.rows.length === 0 ) {
+      return res.status(401).send("Invalid")
+    }
+    console.log(user)
+    res.status(200).json(user.rows[0])
+}
+  catch(error) {
+    console.error("Unsuccessful admin attempt:", error)
+    res.status(401).send("Not admin")
+  }
+})
+
 module.exports = router;

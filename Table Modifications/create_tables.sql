@@ -14,7 +14,7 @@ DROP TABLE IF EXISTS historical_stock CASCADE;
 --  U_Password: A string of 25 characters or less
 CREATE TABLE
     "Users" (
-        U_USER_ID INTEGER PRIMARY KEY,
+        U_USER_ID SERIAL PRIMARY KEY,
         U_USERNAME CHAR(25) NOT NULL UNIQUE,
         U_EMAIL CHAR(25) NOT NULL UNIQUE,
         U_PASSWORD CHAR(25) NOT NULL
