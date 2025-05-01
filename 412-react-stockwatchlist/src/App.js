@@ -175,7 +175,7 @@ function App() {
     const month = String(d.getMonth() + 1).padStart(2, "0"); // 0-based month
     const day = String(d.getDate()).padStart(2, "0");
 
-    return `${year}-${month}-${day}`;
+    return `${month}-${day}-${year}`;
   };
 
   if (!isLoggedIn) {
@@ -379,7 +379,7 @@ function App() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td>{latestData.hs_date}</td>
+                        <td>{formatDate(latestData.hs_date)}</td>
                         <td>${latestData.hs_closing_price}</td>
                       </tr>
                     </tbody>
@@ -395,7 +395,7 @@ function App() {
                 </option>
                 {getAvailableDates(selectedStock).map((date) => (
                   <option key={date} value={date}>
-                    {date}
+                    {formatDate(date)}
                   </option>
                 ))}
               </select>
