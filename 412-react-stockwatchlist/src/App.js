@@ -1,10 +1,35 @@
 import { useState, useEffect } from "react";
 import "./App.css";
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend,
+  Title,
+} from 'chart.js';
+
+ChartJS.register(
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend,
+  Title
+);
+
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  //const [setIsRegistering, ]
+  const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [userid, setUserId] = useState(null);
   const [isAdmin, setAdmin] = useState(false)
 
   const [availableStocks, setAvailableStocks] = useState([]);
@@ -66,20 +91,35 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    /* try {
-      const res = await fetch(`http://localhost:5050/api/login/${username}/${password}`)
+    try {
+      const res = await fetch(`http://localhost:5050/api/login/${username}/${password}`);
       if (res.ok) {
-        const data = JSON.parse(res.body)
-        console.log(res.body)
-        const userid = data.u_user_id
-        console.log(userid)
-        const isAdmin = await fetch(`http://localhost:5050/api/isAdmin/${data}`)
+        const user = await res.json();
+        setIsLoggedIn(true);
+        setAdmin(user.u_user_id === 1); // No need for the admin checking route
+      } else {
+        alert("Invalid username or password");
       }
-    } catch(err) {
-      console.log(err)
-    } */
-    if (username && password) setIsLoggedIn(true); // Add actual login logic here
+    } catch (err) {
+      console.error("Login failed:", err);
+      alert("Login failed");
+    }
   };
+
+  const handleRegister = async () => {
+    try {
+      const res = await fetch(`http://localhost:5050/api/register/${username}/${password}`);
+      if (res.ok) {
+        alert("User registered! Please log in.");
+      } else {
+        alert("Registration failed");
+      }
+    } catch (err) {
+      console.error("Registration error:", err);
+      alert("Registration failed");
+    }
+  };
+  
 
   /* const confirmAdmin = async (e) => {
     e.preventDefault();
@@ -88,19 +128,34 @@ function App() {
     }
   } */
 
-  const handleAddToWatchlist = (e) => {
+  const handleAddToWatchlist = async (e) => {
     const ticker = e.target.value;
     if (ticker && !watchlist.some((stock) => stock.s_ticker === ticker)) {
       const stock = availableStocks.find((s) => s.s_ticker === ticker);
-      setWatchlist([...watchlist, stock]);
-      setSelectedStock(ticker);
+      try {
+        await fetch(`http://localhost:5050/api/watchlist/${userid}/${ticker}`, {
+          method: 'POST',
+        });
+        setWatchlist([...watchlist, stock]);
+        setSelectedStock(ticker);
+      } catch (err) {
+        console.error("Error adding to watchlist:", err);
+      }
     }
   };
 
-  const handleRemoveFromWatchlist = (ticker) => {
-    setWatchlist(watchlist.filter((stock) => stock.s_ticker !== ticker));
-    if (selectedStock === ticker) setSelectedStock("");
+  const handleRemoveFromWatchlist = async (ticker) => {
+    try {
+      await fetch(`http://localhost:5050/api/watchlist/${userid}/${ticker}`, {
+        method: 'DELETE',
+      });
+      setWatchlist(watchlist.filter((stock) => stock.s_ticker !== ticker));
+      if (selectedStock === ticker) setSelectedStock("");
+    } catch (err) {
+      console.error("Error removing from watchlist:", err);
+    }
   };
+
 
   const handleStockSelect = (ticker) => {
     setSelectedStock(ticker);
@@ -198,34 +253,82 @@ function App() {
     return `${month}-${day}-${year}`;
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="app">
-        <h1>Stock Watchlist</h1>
-        <div className="login-form">
-          <h2>Login</h2>
-          <form onSubmit={handleLogin}>
-            <input
-              type="text"
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <button type="submit">Login</button>
-          </form>
-        </div>
-      </div>
-    );
+  const formatTime = (datetime) => {
+    const time = new Date(datetime);
+    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  const assendingData = historicalData
+    .filter((d) => d.ticker === selectedStock)
+    .sort((a, b) => new Date(a.hs_date) - new Date(b.hs_date)); // ascending order
+
+
+    if (!isLoggedIn) {
+      if (isRegistering) {
+        return (
+          <div className="app">
+            <h1>Stock Watchlist</h1>
+            <div className="login-form">
+              <h2>Register</h2>
+              <form onSubmit={handleRegister}>
+                <input
+                  type="text"
+                  placeholder="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+                <input
+                  type="password"
+                  placeholder="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button type="submit">Register</button>
+                <p>Already have an account?{" "}
+                  <button type="button" onClick={() => setIsRegistering(false)}>
+                    Login here
+                  </button>
+                </p>
+              </form>
+            </div>
+          </div>
+        );
+      }
+    
+      return (
+        <div className="app">
+          <h1>Stock Watchlist</h1>
+          <div className="login-form">
+            <h2>Login</h2>
+            <form onSubmit={handleLogin}>
+              <input
+                type="text"
+                placeholder="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+              <input
+                type="password"
+                placeholder="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button type="submit">Login</button>
+              <p>Don't have an account?{" "}
+                <button type="button" onClick={() => setIsRegistering(true)}>
+                  Register here
+                </button>
+              </p>
+            </form>
+          </div>
+        </div>
+      );
+    }
+    
   return (
     <div className="app">
       <h1>Stock Watchlist</h1>
@@ -408,6 +511,37 @@ function App() {
                   <p>No data available</p>
                 );
               })()}
+                <div>
+                  <h3>Stock Trend</h3>
+                  <Line
+                    data={{
+                      labels: assendingData.map((d) => formatDate(d.hs_date)),
+                      datasets: [
+                        {
+                          label: `${selectedStock} Close Price`,
+                          data: assendingData.map((d) => d.hs_closing_price),
+                          borderColor: 'blue',
+                          fill: false,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: { display: true },
+                        title: { display: true, text: `${selectedStock} Closing Price Over Time` },
+                      },
+                      scales: {
+                        x: {
+                          title: { display: true, text: 'Time' },
+                        },
+                        y: {
+                          title: { display: true, text: 'Closing Price' },
+                        },
+                      },
+                    }}
+                  />
+                </div>
               <h3>Historical Data</h3>
               <select onChange={handleDateChange} value={selectedDate}>
                 <option value="" disabled>
@@ -423,30 +557,32 @@ function App() {
                 (() => {
                   const data = getHistoricalData(selectedStock, selectedDate);
                   return data ? (
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Ticker</th>
-                          <th>Date</th>
-                          <th>Open</th>
-                          <th>High</th>
-                          <th>Low</th>
-                          <th>Close</th>
-                          <th>Volume</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>{data.ticker}</td>
-                          <td>{data.hs_date}</td>
-                          <td>${data.hs_open_price}</td>
-                          <td>${data.hs_high}</td>
-                          <td>${data.hs_low}</td>
-                          <td>${data.hs_closing_price}</td>
-                          <td>{data.hs_volume}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div>
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Ticker</th>
+                            <th>Date</th>
+                            <th>Open</th>
+                            <th>High</th>
+                            <th>Low</th>
+                            <th>Close</th>
+                            <th>Volume</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>{data.ticker}</td>
+                            <td>{data.hs_date}</td>
+                            <td>${data.hs_open_price}</td>
+                            <td>${data.hs_high}</td>
+                            <td>${data.hs_low}</td>
+                            <td>${data.hs_closing_price}</td>
+                            <td>{data.hs_volume}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                  </div>
                   ) : (
                     <p>No historical data</p>
                   );

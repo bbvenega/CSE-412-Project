@@ -185,20 +185,32 @@ router.get("/login/:username/:password", async (req, res) => {
   }
 })
 
-//Creates a new user
+// Creates a new user
 router.get("/register/:username/:password", async (req, res) => {
-  const { username, password } = req.params
+  const { username, password } = req.params;
   try {
-    const user = await pool.query('INSERT INTO "Users"(u_username, u_email, u_password) VALUES ($1, $2, $3) RETURNING *', [username, username, password])
-    console.log(user)
-    res.status(201).json(user.rows[0])
-    console.log(res)
-}
-  catch(error) {
-    console.error("Unsuccessful registration attempt:", error)
-    res.status(401).send("Failed Registration")
+    //Check if the user already exists
+    const existingUser = await pool.query(
+      'SELECT * FROM "Users" WHERE u_username = $1',
+      [username]
+    );
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({ error: "Username already exists" });
+    }
+    //insert the new user
+    const user = await pool.query(
+      'INSERT INTO "Users"(u_username, u_email, u_password) VALUES ($1, $2, $3) RETURNING *',
+      [username, username, password]
+    );
+
+    //console.log("New user registered:", user.rows[0]);
+    res.status(201).json(user.rows[0]);
+  } catch (error) {
+    //console.error("Unsuccessful registration attempt:", error);
+    res.status(500).send("Failed Registration");
   }
-})
+});
+
 
 //Checks if specified user is an admin
 router.get("/isAdmin/:userid", async (req, res) => {
@@ -219,4 +231,51 @@ router.get("/isAdmin/:userid", async (req, res) => {
   }
 })
 
+router.post("/watchlist/:userid/:ticker", async (req, res) => {
+  const { userid, ticker } = req.params;
+  try {
+    await pool.query(
+      'INSERT INTO "Watchlist"(user_id, s_ticker) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [userid, ticker]
+    );
+    res.status(200).send("Added to watchlist");
+  } catch (err) {
+    console.error("Error adding to watchlist:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+router.delete("/watchlist/:userid/:ticker", async (req, res) => {
+  const { userid, ticker } = req.params;
+  try {
+    await pool.query(
+      'DELETE FROM "Watchlist" WHERE user_id = $1 AND s_ticker = $2',
+      [userid, ticker]
+    );
+    res.status(200).send("Removed from watchlist");
+  } catch (err) {
+    console.error("Error removing from watchlist:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+router.get("/watchlist/:userid", async (req, res) => {
+  const { userid } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT s.* FROM Stock s JOIN Watchlist w ON s.s_ticker = w.s_ticker WHERE w.user_id = $1',
+      [userid]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching watchlist:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+
+
+
 module.exports = router;
+
+
